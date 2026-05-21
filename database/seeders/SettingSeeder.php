@@ -13,6 +13,8 @@ class SettingSeeder extends Seeder
      */
     public function run(): void
     {
+        $app_name = env('App_NAME', 'e-commerce');
+
         // database/seeders/SettingSeeder.php
         Setting::create([
             'key' => 'maintenance_mode',
@@ -36,7 +38,7 @@ class SettingSeeder extends Seeder
 
         Setting::create([
             'key' => 'app_name',
-            'value' => 'Alofo',
+            'value' => $app_name,
             'type' => 'string',
             'group' => 'General',
             'label' => 'App name',
@@ -46,7 +48,7 @@ class SettingSeeder extends Seeder
 
         Setting::create([
             'key' => 'contact_email',
-            'value' => 'support@alofo.com',
+            'value' => "support@{$app_name}.com",
             'type' => 'string',
             'group' => 'General',
             'label' => 'Contact Email',

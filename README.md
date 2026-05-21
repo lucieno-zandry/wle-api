@@ -9,7 +9,7 @@ docker run --name {image_name} -p 8010:80 -d lucienozandry/{image_name}:latest
 or 
 
 ```
-docker run --name alofo_api -p 9000:80 -e APP_URL=http://102.16.254.6:9000 -v /etc/docker/alofo/api/dev/storage:/var/www/html/storage -v /etc/docker/alofo/api/dev/.env:/var/www/html/.env -d lucienozandry/alofo-api:latest
+docker run --name app_name_api -p 9000:80 -e APP_URL=http://102.16.254.6:9000 -v /etc/docker/app_name/api/dev/storage:/var/www/html/storage -v /etc/docker/app_name/api/dev/.env:/var/www/html/.env -d lucienozandry/app_name-api:latest
 ```
 
 ## Run typesense container
