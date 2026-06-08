@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\TransactionStatus;
 use App\Events\FailedPayment;
 use App\Events\Payment;
+use App\Events\TransactionAudited;
 use App\Helpers\Functions;
 use App\Http\Requests\RefundRequestStoreRequest;
 use App\Http\Requests\TransactionCreateRequest;
@@ -28,6 +29,7 @@ use App\Notifications\PaymentSuccess;
 use App\Notifications\RefundRequested;
 use App\Services\CurrencyService;
 use App\Services\TransactionRefundService;
+use App\Services\VanillaPayService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -160,21 +162,46 @@ class TransactionController extends Controller
     // -------------------------------------------------------------------------
 
     // In the store method, replace the old 'method' handling:
-    public function store(TransactionCreateRequest $request)
+    public function store(TransactionCreateRequest $request, CurrencyService $currencyService)
     {
         $data = $request->validated();
         $data['user_id'] = auth('sanctum')->id();
         $data['type']    = 'PAYMENT';
 
         $amount = $request->amount;
-        $currency = app(CurrencyService::class)->getFrom();
+        $currency = $currencyService->getFrom();
 
         $uuid = Str::uuid()->toString();
         $data['uuid'] = $uuid;
 
         $token = request()->header('Authorization');
         $redirect_url = Functions::get_order_detail_page_url($request->order_uuid);
-        $payment_url = config('urls.payment_host') . "/index.html?amount={$amount}&transaction_uuid={$uuid}&token={$token}&redirect_url={$redirect_url}&currency={$currency}";
+
+        $payment_url = "";
+
+        switch ($request->payment_method) {
+            case 'vanilla_pay':
+                if ($currency !== 'MGA' && $currency !== 'EUR') {
+                    $amount = $currencyService->convert(amount: $amount, from: $currency, to: 'EUR');
+                    $currency = ('EUR');
+                }
+
+                $payment_url = (new VanillaPayService)->initiatePayment([
+                    'montant' => $amount,
+                    'reference' => $uuid,
+                    'panier' => $request->order_uuid,
+                    'notif_url' => route('webhooks.vanillapay'),
+                    'redirect_url' => $redirect_url,
+                    'devise' => $currency,
+                    'mode_paiement' => 'mobile_money',
+                ]);
+
+                break;
+
+            default:
+                $payment_url = config('urls.payment_host') . "/index.html?amount={$amount}&transaction_uuid={$uuid}&token={$token}&redirect_url={$redirect_url}&currency={$currency}";
+                break;
+        }
 
         // Extract searchable reference from informations if present
         if (!empty($data['informations']['reference'])) {
@@ -271,9 +298,8 @@ class TransactionController extends Controller
 
         $transaction->update($data);
 
-        // Log automated status transitions (gateway callbacks)
         if (isset($data['status']) && $data['status'] !== $oldStatus) {
-            TransactionAuditLog::create([
+            TransactionAudited::dispatch([
                 'transaction_uuid' => $transaction->uuid,
                 'performed_by'     => null, // system/gateway
                 'action'           => 'status_updated',

@@ -9,6 +9,7 @@ enum PaymentMethod: string
     case ApplePay = 'apple_pay';
     case GooglePay = 'google_pay';
     case BankTransfer = 'bank_transfer';
+    case VanillaPay = 'vanilla_pay';
         // fallback for unknown
     case Unknown = 'unknown';
 }

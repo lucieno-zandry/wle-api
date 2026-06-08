@@ -23,6 +23,7 @@ use App\Http\Controllers\UserPreferenceController;
 use App\Http\Controllers\VariantController;
 use App\Http\Controllers\VariantGroupController;
 use App\Http\Controllers\VariantOptionController;
+use App\Http\Controllers\WebhookController;
 use App\Http\Middleware\AutoAuthenticateGuest;
 use App\Http\Middleware\CustomSanctumAuth;
 use App\Http\Middleware\EnsureUserIsApproved;
@@ -369,4 +370,10 @@ Route::prefix('images')
             Route::post('', 'store');
             Route::delete('{image}', 'destroy');
         });
+    });
+
+Route::prefix('webhooks')
+    ->controller(WebhookController::class)
+    ->group(function () {
+        Route::post('vanillapay', 'vanillapay')->name('webhooks.vanillapay');
     });
