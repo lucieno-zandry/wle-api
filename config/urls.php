@@ -2,7 +2,7 @@
 
 return [
     'front_office_fe_url'        => env('FRONT_OFFICE_FE_URL', 'http://localhost'),
-    'payment_host'               => env('PAYMENT_HOST'),
+    'payment_host'               => env('PAYMENT_HOST', 'http://localhost:5500'),
     'backoffice_fe_url'          => env('BACKOFFICE_FE_URL', 'http://localhost'),
     'password_reset_pathname'    => env('PASSWORD_RESET_PATHNAME', 'auth/reset-password/'),
     'email_verify_pathname'      => env('EMAIL_VERIFY_PATHNAME', 'auth/verify-email'),
