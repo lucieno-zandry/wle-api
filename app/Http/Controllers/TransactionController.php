@@ -189,7 +189,7 @@ class TransactionController extends Controller
                 $payment_url = (new VanillaPayService)->initiatePayment([
                     'montant' => $amount,
                     'reference' => $uuid,
-                    'panier' => $request->order_uuid,
+                    'panier' => substr($request->order_uuid, 0, 8),
                     'notif_url' => route('webhooks.vanillapay'),
                     'redirect_url' => $redirect_url,
                     'devise' => $currency,
