@@ -16,7 +16,9 @@ class WebhookController extends Controller
     public function vanillapay(Request $request, VanillaPayService $vanillaPay)
     {
         $signature = $request->header('VPI-Signature');
-        $rawPayload = $request->getContent(); // Get raw string for hash verification 
+        $rawPayload = $request->getContent(); // Get raw string for hash verification
+
+        Log::debug($rawPayload);
 
         Log::debug('########################### WebhookController->vanillapay ###############################');
         Log::debug(["signature : ", $signature]);
