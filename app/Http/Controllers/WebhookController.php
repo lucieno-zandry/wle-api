@@ -30,11 +30,15 @@ class WebhookController extends Controller
             return response()->json(['error' => 'Invalid signature'], 401);
         }
 
-        $status = $request->input('etat'); // SUCCESS, PENDING, or FAILED 
+        $status = strtoupper($request->input('etat', 'FAILED')); // SUCCESS, PENDING, or FAILED 
         $transaction_uuid = $request->input('reference');
 
+        /** @var Transaction */
         if ($transaction = Transaction::where('uuid', $transaction_uuid)->first()) {
-            $transaction->update('informations', $request->all());
+            $transaction->update([
+                'informations' => request()->all(),
+                'status' => $status === TransactionStatus::SUCCESS->value ? $status : 'FAILED',
+            ]);
 
             Payment::dispatchIf($status === TransactionStatus::SUCCESS->value, $transaction->order, $transaction);
             FailedPayment::dispatchIf($status === TransactionStatus::FAILED->value, $transaction->order, $transaction);
