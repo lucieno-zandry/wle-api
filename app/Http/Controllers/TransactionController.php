@@ -31,8 +31,11 @@ use App\Services\CurrencyService;
 use App\Services\TransactionRefundService;
 use App\Services\VanillaPayService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+
+use function Psy\debug;
 
 class TransactionController extends Controller
 {
@@ -181,6 +184,12 @@ class TransactionController extends Controller
 
         switch ($request->payment_method) {
             case 'vanilla_pay':
+                $notif_url = route('webhooks.vanillapay');
+                Log::debug('########################### TransactionController->store ###############################');
+                Log:debug(["notif_url", $notif_url]);
+                Log::debug(["uuid", $uuid]);
+                Log::debug('---------------------------END TransactionController->store-----------------------------');
+
                 if ($currency !== 'MGA' && $currency !== 'EUR') {
                     $amount = $currencyService->convert(amount: $amount, from: $currency, to: 'EUR');
                     $currency = ('EUR');
@@ -190,7 +199,7 @@ class TransactionController extends Controller
                     'montant' => $amount,
                     'reference' => $uuid,
                     'panier' => substr($request->order_uuid, 0, 8),
-                    'notif_url' => route('webhooks.vanillapay'),
+                    'notif_url' => $notif_url,
                     'redirect_url' => $redirect_url,
                     'devise' => $currency,
                     'mode_paiement' => 'mobile_money',

@@ -9,6 +9,7 @@ use App\Models\Order;
 use App\Models\Transaction;
 use App\Services\VanillaPayService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class WebhookController extends Controller
 {
@@ -16,6 +17,12 @@ class WebhookController extends Controller
     {
         $signature = $request->header('VPI-Signature');
         $rawPayload = $request->getContent(); // Get raw string for hash verification 
+
+        Log::debug('########################### WebhookController->vanillapay ###############################');
+        Log::debug(["signature : ", $signature]);
+        Log::debug(["rawPayload : ", $rawPayload]);
+        Log::debug(["request : ", $request->all()]);
+        Log::debug('---------------------------END WebhookController->vanillapay-----------------------------');
 
         if (!$signature || !$vanillaPay->verifyWebhookSignature($rawPayload, $signature)) {
             return response()->json(['error' => 'Invalid signature'], 401);
