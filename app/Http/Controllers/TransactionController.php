@@ -186,8 +186,8 @@ class TransactionController extends Controller
             case 'vanilla_pay':
                 $notif_url = route('webhooks.vanillapay');
                 Log::debug('########################### TransactionController->store ###############################');
-                Log:debug(["notif_url", $notif_url]);
                 Log::debug(["uuid", $uuid]);
+                Log::debug(["notif_url", $notif_url]);
                 Log::debug('---------------------------END TransactionController->store-----------------------------');
 
                 if ($currency !== 'MGA' && $currency !== 'EUR') {
