@@ -36,8 +36,5 @@ echo "🔍 Syncing Scout indexes..."
 php artisan scout:flush "App\\Models\\Product" || true
 php artisan scout:import "App\\Models\\Product" || true
 
-echo "⚙️ Starting queue worker..."
-php artisan queue:work --daemon --tries=3 --timeout=90 &
-
 echo "🚀 Starting Apache..."
 exec apache2-foreground

@@ -1,0 +1,11 @@
+services:
+  # The Laravel Apache App
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: wle_api_staging
+    ports:
+      - "8000:80"
+    volumes:
+      - .:/var/www/html

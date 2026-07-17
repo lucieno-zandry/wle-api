@@ -12,47 +12,40 @@ use App\Http\Requests\OrderUpdateRequest;
 use App\Models\Address;
 use App\Models\CartItem;
 use App\Models\Order;
+use App\Models\Variant;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class OrderController extends Controller
 {
+
     public function store(OrderCreateRequest $request)
     {
         $data = $request->only(['address_id', 'coupon_id', 'shipping_method_id', 'notes']);
 
-        /** @var Collection */
-        $cartItems = CartItem::with('variant')->whereIn('id', $request->cart_item_ids)
-            ->notOrdered()
-            ->get();
-
-        if ($cartItems->isEmpty()) {
-            abort(403, "These cart items have already been ordered.");
-        }
-
-        $stockVerified = $cartItems->every(function ($item) {
-            return $item->variant && $item->count <= $item->variant->stock;
-        });
-
-        if (!$stockVerified) {
-            abort(403, "Some of the products are out of stock!");
-        }
-
-        // 1. Validate address ownership
+        // 1. Validate address ownership (No transaction needed)
         $address = Address::where('id', $data['address_id'])
             ->where('user_id', auth('sanctum')->id())
             ->firstOrFail();
 
-        // 2. Calculate shipping cost server-side
-        $shippingMethod = \App\Models\ShippingMethod::findOrFail($data['shipping_method_id']);
+        // 2. Fetch cart items to prepare for shipping calculation
+        $cartItemsForShipping = CartItem::whereIn('id', $request->cart_item_ids)
+            ->notOrdered()
+            ->get();
 
-        // Prepare items for calculator (each item needs weight_kg, quantity, price)
-        $items = $cartItems->map(fn($item) => [
+        if ($cartItemsForShipping->isEmpty()) {
+            abort(403, "These cart items have already been ordered.");
+        }
+
+        // 3. HEAVY SHIPPING CALCULATION (API Call) - Run this OUTSIDE the transaction!
+        $shippingMethod = \App\Models\ShippingMethod::findOrFail($data['shipping_method_id']);
+        $items = $cartItemsForShipping->map(fn($item) => [
             'weight_kg' => $item->variant_snapshot['weight_kg'] ?? 0,
             'quantity' => $item->count,
-            'price' => $item->unit_price, // effective price after promotions
+            'price' => $item->unit_price,
         ]);
 
         $calculator = app(\App\Services\ShippingCalculatorService::class);
@@ -66,36 +59,79 @@ class OrderController extends Controller
             abort(422, "Selected shipping method is not available: " . $e->getMessage());
         }
 
-        // 3. Build the order
-        $order = new Order();
-        $order->uuid = Str::uuid()->toString();
+        // 4. Start an ultra-fast transaction to secure the inventory and order
+        return DB::transaction(function () use ($request, $data, $address, $shippingMethod, $shippingCost, $calculator) {
 
-        // Use the helper, passing shipping data
-        $order = OrderHelpers::make_order(
-            $order,
-            $cartItems,
-            $data,
-            $shippingCost,
-            $shippingMethod
-        );
+            // Re-verify that cart items haven't been ordered in the split second we did the API call
+            $cartItems = CartItem::whereIn('id', $request->cart_item_ids)
+                ->notOrdered()
+                ->get();
 
-        // Address snapshot (already existing)
-        $order->address_snapshot = $address->snapshot();
+            if ($cartItems->isEmpty()) {
+                abort(403, "These cart items have already been ordered.");
+            }
 
-        // Additional shipping fields on order
-        $order->shipping_method_id = $shippingMethod->id;
-        $order->shipping_cost = $shippingCost;
-        $order->total_weight_kg = $calculator->getTotalWeight();
-        $order->shipping_method_snapshot = [
-            'name' => $shippingMethod->name,
-            'carrier' => $shippingMethod->carrier,
-            'min_delivery_days' => $shippingMethod->min_delivery_days,
-            'max_delivery_days' => $shippingMethod->max_delivery_days,
-        ];
+            $variantIds = $cartItems->pluck('variant_id')->unique()->filter();
 
-        $order->save();
+            // Lock rows for update
+            $variants = Variant::whereIn('id', $variantIds)
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id');
 
-        return ['order' => $order];
+            // Verify available stock (Stock minus what is currently reserved)
+            $stockVerified = $cartItems->every(function ($item) use ($variants) {
+                $variant = $variants->get($item->variant_id);
+                // Assuming you have a 'reserved_stock' column
+                $availableStock = $variant->stock - $variant->reserved_stock;
+                return $variant && $item->count <= $availableStock;
+            });
+
+            if (!$stockVerified) {
+                abort(403, "Some of the products are out of stock!");
+            }
+
+            // PERSIST THE RESERVATION IMMEDIATELY while we hold the lock
+            foreach ($cartItems as $item) {
+                $variant = $variants->get($item->variant_id);
+                $variant->increment('reserved_stock', $item->count);
+            }
+
+            // Save the order
+            $order = new Order();
+            $order->uuid = Str::uuid()->toString();
+
+            $order = OrderHelpers::make_order($order, $cartItems, $data, $shippingCost, $shippingMethod);
+            $order->address_snapshot = $address->snapshot();
+            $order->shipping_method_id = $shippingMethod->id;
+            $order->shipping_cost = $shippingCost;
+            $order->total_weight_kg = $calculator->getTotalWeight();
+            $order->shipping_method_snapshot = [
+                'name' => $shippingMethod->name,
+                'carrier' => $shippingMethod->carrier,
+                'min_delivery_days' => $shippingMethod->min_delivery_days,
+                'max_delivery_days' => $shippingMethod->max_delivery_days,
+            ];
+
+            $order->save();
+
+            return response()->json([
+                'message' => 'Order placed successfully!',
+                'order' => $order
+            ], 201);
+        });
+    }
+
+    /**
+     * Helper to release reserved stock if something fails prior to payment redirect
+     */
+    private function releaseReservedStock(Collection $cartItems)
+    {
+        foreach ($cartItems as $item) {
+            DB::table('variants')
+                ->where('id', $item->variant_id)
+                ->decrement('reserved_stock', $item->count);
+        }
     }
 
     public function update(OrderUpdateRequest $request, Order $order)

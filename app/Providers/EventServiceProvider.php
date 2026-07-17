@@ -2,18 +2,6 @@
 
 namespace App\Providers;
 
-use App\Events\ClientCodeUsed;
-use App\Events\FailedPayment;
-use App\Events\Payment;
-use App\Events\UserStatusUpdatedEvent;
-use App\Listeners\NotifyAdminsAboutClientCodeUsage;
-use App\Listeners\NotifyAdminsTransactionSuccess;
-use App\Listeners\NotifyBuyerTransactionFailed;
-use App\Listeners\NotifyBuyerTransactionSuccess;
-use App\Listeners\NotifyCustomerAboutClientCodeUsage;
-use App\Listeners\SendUserStatusNotification;
-use App\Listeners\UpdateClientCodeUsage;
-use App\Listeners\UseCoupon;
 use App\Models\Order;
 use App\Models\Setting;
 use App\Models\User;

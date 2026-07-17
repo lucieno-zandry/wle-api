@@ -10,6 +10,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\DB;
 
 class FailPendingTransaction implements ShouldQueue
 {
@@ -33,6 +34,19 @@ class FailPendingTransaction implements ShouldQueue
         if ($transaction->status === TransactionStatus::PENDING->value) {
             $transaction->status = TransactionStatus::FAILED->value;
             $transaction->save();
+
+            $order = $transaction->order;
+
+            // Release the reserved stock back into the pool
+            if ($order) {
+                DB::transaction(function () use ($order) {
+                    foreach ($order->cart_items as $item) {
+                        DB::table('variants')
+                            ->where('id', $item->variant_id)
+                            ->decrement('reserved_stock', $item->count);
+                    }
+                });
+            }
 
             FailedPayment::dispatch($transaction->order, $transaction);
         }
