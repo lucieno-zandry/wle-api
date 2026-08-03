@@ -1,11 +1,32 @@
+name: wle_api_staging
+
 services:
-  # The Laravel Apache App
   web:
     build:
       context: .
       dockerfile: Dockerfile
+    image: wle_api_image:latest
     container_name: wle_api_staging
     ports:
       - "8000:80"
     volumes:
       - .:/var/www/html
+    networks:
+      - wle-network
+
+  worker:
+    image: wle_api_image:latest
+    container_name: wle_worker
+    working_dir: /var/www/html
+    command: php artisan queue:work --verbose --tries=3 --timeout=90
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      - web
+    restart: unless-stopped
+    networks:
+      - wle-network
+
+networks:
+  wle-network:
+    external: true

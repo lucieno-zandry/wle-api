@@ -7,8 +7,8 @@ export const options = {
 };
 
 // Use the internal container name (default port 80)
-const BASE_URL = 'http://wle_api_staging/api';
-const AUTH_TOKEN = '32|dN1z0haZvKsjUqJyDHicS0kHMDNjhfAcogVpyT2w42bd5d68';
+const BASE_URL = 'http://localhost:8000/api';
+const AUTH_TOKEN = '46|AvgU9vPSOU8pA6MfKzCBu0mljDnzF5Az3BqXStF7a2efa7b5';
 
 const params = {
     headers: {
