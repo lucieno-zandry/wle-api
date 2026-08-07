@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\OrderStatus;
 use App\Services\CurrencyService;
 use App\Traits\ApplyFilters;
 use App\Traits\CustomerFilterable;
@@ -25,7 +26,8 @@ class Order extends Model
     protected $casts = [
         'address_snapshot' => 'array',
         'coupon_snapshot'  => 'array',
-        'shipping_method_snapshot' => 'array'
+        'shipping_method_snapshot' => 'array',
+        'status' => OrderStatus::class,
     ];
 
     protected $fillable = [
