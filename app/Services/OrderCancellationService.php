@@ -35,11 +35,12 @@ class OrderCancellationService
 
             if ($successfulTransaction) {
                 $refundRequest = RefundRequest::create([
+                    'user_id' => $order->user_id,
+                    'transaction_uuid' => $successfulTransaction->uuid,
+                    'order_uuid' => $order->uuid,
                     'uuid' => Str::uuid()->toString(),
                     'order_id' => $order->id,
-                    'transaction_id' => $successfulTransaction->id,
                     'amount' => $successfulTransaction->amount,
-                    'status' => 'pending',
                     'reason' => $reason,
                 ]);
             }

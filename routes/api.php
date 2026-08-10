@@ -231,7 +231,7 @@ Route::prefix('order')
         Route::delete('delete', 'destroy');
         Route::post('create-from-variant', 'create_from_variant');
         Route::post('checkout', 'checkout');
-        Route::patch('cancel', 'cancel');
+        Route::patch('cancel/{order}', 'cancel');
     });
 
 // Shipments – requires authentication (email verified); write actions (create, update, delete) also require approval

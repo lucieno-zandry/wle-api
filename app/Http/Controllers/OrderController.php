@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\OrderStatus;
 use App\Helpers\CartItemHelpers;
 use App\Helpers\OrderHelpers;
+use App\Http\Requests\OrderCancelRequest;
 use App\Http\Requests\OrderCheckoutRequest;
 use App\Http\Requests\OrderCreateRequest;
 use App\Http\Requests\OrderDeleteRequest;
@@ -12,6 +13,7 @@ use App\Http\Requests\OrderUpdateRequest;
 use App\Models\Address;
 use App\Models\CartItem;
 use App\Models\Order;
+use App\Models\User;
 use App\Models\Variant;
 use App\Services\OrderCancellationService;
 use Illuminate\Database\Eloquent\Collection;
@@ -287,36 +289,9 @@ class OrderController extends Controller
         ], 403);
     }
 
-    public function cancel(Request $request, string $order_uuid): JsonResponse
+    public function cancel(OrderCancelRequest $request, Order $order): JsonResponse
     {
-        /** @var Order */
-        $order = Order::where('uuid', $order_uuid)->firstOrFail();
-
-        // Security check: Only the owner can cancel
-        if ($order->user_id !== auth('sanctum')->id()) {
-            abort(403, 'Unauthorized action.');
-        }
-
-        // Validate Allowed Window: Cannot cancel if processing or beyond
-        $disallowedStatuses = [
-            OrderStatus::PROCESSING,
-            OrderStatus::SHIPPED,
-            OrderStatus::DELIVERED
-        ];
-
-        if (in_array($order->status, $disallowedStatuses)) {
-            return response()->json([
-                'message' => 'This order is already being processed and cannot be cancelled.'
-            ], 422);
-        }
-
-        if ($order->status === OrderStatus::CANCELLED) {
-            return response()->json(['message' => 'Order is already cancelled.'], 422);
-        }
-
-        $validated = $request->validate([
-            'reason' => 'nullable|string|max:255'
-        ]);
+        $validated = $request->validated();
 
         // Execute service logic
         app(OrderCancellationService::class)->cancelOrder($order, $validated['reason'] ?? 'Customer initiated cancellation');

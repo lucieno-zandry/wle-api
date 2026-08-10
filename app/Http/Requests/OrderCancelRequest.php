@@ -2,19 +2,22 @@
 
 namespace App\Http\Requests;
 
-use App\Models\Order;
-use App\Rules\UsableCoupon;
+use App\Rules\CancellableOrder;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Log;
 use Override;
 
-class OrderCreateRequest extends FormRequest
+class OrderCancelRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
      */
     public function authorize(): bool
     {
-        return $this->user()->can('create', Order::class);
+        Log::debug($this->order);
+        Log::debug("this order -----");
+
+        return $this->user()->can('cancel', $this->order);
     }
 
     /**
@@ -25,19 +28,15 @@ class OrderCreateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'address_id' => ['required', 'exists:addresses,id'],
-            'cart_item_ids' => ['required', 'array'],
-            'cart_item_ids[*]' => ['numeric'],
-            'coupon_id' => ['nullable', new UsableCoupon],
-            'shipping_method_id' => ['required', 'exists:shipping_methods,id'],
-            'notes' => ['string'],
+            'order' => ['required', new CancellableOrder],
+            'reason' => 'nullable|string|max:255'
         ];
     }
 
     public function prepareForValidation()
     {
-        $this->mergeIfMissing([
-            'notes' => ''
+        $this->merge([
+            'order' => $this->order,
         ]);
     }
 }
