@@ -9,27 +9,18 @@ use App\Http\Requests\CartItemDeleteRequest;
 use App\Http\Requests\CartItemUpdateRequest;
 use App\Models\CartItem;
 use App\Models\Variant;
+use App\Services\CartItemService;
 
 class CartItemController extends Controller
 {
-    public function store(CartItemCreateRequest $request, Variant $variant)
+    public function store(CartItemCreateRequest $request, int $variantId, CartItemService $service)
     {
         $data = $request->validated();
+        $cartItem = $service->createCartItem($data, $variantId);
 
-        $data['user_id'] = auth('sanctum')->id();
-        $data['variant_id'] = $variant->id;
-        $data['product_id'] = $variant->product_id;
-
-        // Pass the variant directly to avoid an extra query
-        $cartItem = CartItemHelpers::make_item(
-            new CartItem(),
-            $data,
-            $variant
-        );
-
-        return [
+        return response()->json([
             'cart_item' => $cartItem
-        ];
+        ], $cartItem->exists ? 200 : 201);
     }
 
     public function update(CartItemUpdateRequest $request, CartItem $cartItem)
@@ -65,7 +56,11 @@ class CartItemController extends Controller
     public function destroy(CartItemDeleteRequest $request)
     {
         $cartItemIds = explode(',', $request->cart_item_ids);
-        $deleted = CartItem::whereIn('id', $cartItemIds)->delete();
+
+        $deleted = CartItem::whereIn('id', $cartItemIds)
+            ->where('user_id', auth('sanctum')->id())
+            ->whereNull('order_uuid')
+            ->delete();
 
         return [
             'deleted' => $deleted

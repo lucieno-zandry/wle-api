@@ -30,6 +30,10 @@ return new class extends Migration {
             $table->json('applied_promotions_snapshot')
                 ->nullable()
                 ->comment('Snapshot of promotions that contributed to the final price');
+            $table->string('active_cart_key')
+                ->virtualAs("CASE WHEN order_uuid IS NULL THEN CONCAT(user_id, '-', variant_id) ELSE NULL END")
+                ->nullable()
+                ->unique();
         });
     }
 

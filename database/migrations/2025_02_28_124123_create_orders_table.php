@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\OrderStatus;
 use App\Models\Address;
 use App\Models\User;
 use Illuminate\Database\Migrations\Migration;
@@ -14,7 +15,8 @@ return new class extends Migration {
     {
         Schema::create('orders', function (Blueprint $table) {
             $table->uuid()->primary();
-            $table->timestamps();
+            $table->string('status')
+                ->default(OrderStatus::PENDING_PAYMENT->value);
             $table->float('total');
             $table->foreignIdFor(User::class);
             $table->foreignIdFor(Address::class);
@@ -24,6 +26,7 @@ return new class extends Migration {
             $table->json('address_snapshot');
             $table->json('coupon_snapshot')->nullable();
             $table->text('notes');
+            $table->timestamps();
         });
     }
 
