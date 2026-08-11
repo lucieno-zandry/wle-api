@@ -1,12 +1,10 @@
 #!/bin/sh
 set -e
-set -x  # optional: remove in production if too verbose
+set -x
 
 cd /var/www/html
 
 echo "📁 Ensuring required directories exist..."
-
-# Required Laravel directories (important with mounted volumes)
 mkdir -p storage/framework/cache
 mkdir -p storage/framework/sessions
 mkdir -p storage/framework/views
@@ -36,5 +34,11 @@ echo "🔍 Syncing Scout indexes..."
 php artisan scout:flush "App\\Models\\Product" || true
 php artisan scout:import "App\\Models\\Product" || true
 
-echo "🚀 Starting Apache..."
-exec apache2-foreground
+# Execute passed command if present, otherwise default to Apache
+if [ "$#" -gt 0 ]; then
+    echo "🚀 Executing custom command: $@"
+    exec "$@"
+else
+    echo "🚀 Starting Apache..."
+    exec apache2-foreground
+fi
