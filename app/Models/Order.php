@@ -106,4 +106,20 @@ class Order extends Model
             }
         }
     }
+
+    public function isCancellable(?User $user = null): bool
+    {
+        $disallowedStatuses = [
+            OrderStatus::SHIPPED->value,
+            OrderStatus::DELIVERED->value,
+            OrderStatus::CANCELLED->value,
+            OrderStatus::COMPLETED->value,
+        ];
+
+        if ($user && !$user->roleIsAdmin()) {
+            $disallowedStatuses[] = OrderStatus::PROCESSING->value;
+        }
+
+        return !in_array($this->status->value, $disallowedStatuses, true);
+    }
 }

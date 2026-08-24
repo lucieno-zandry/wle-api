@@ -2,10 +2,8 @@
 
 namespace App\Http\Requests;
 
-use App\Rules\CancellableOrder;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\Log;
-use Override;
+use Illuminate\Support\Facades\Gate;
 
 class OrderCancelRequest extends FormRequest
 {
@@ -14,12 +12,10 @@ class OrderCancelRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        Log::debug($this->order);
-        Log::debug("this order -----");
-
-        return $this->user()->can('cancel', $this->order);
+        // Throws a 403 with the exact Response::deny() message from your Policy
+        Gate::authorize('cancel', $this->order);
+        return true;
     }
-
     /**
      * Get the validation rules that apply to the request.
      *
@@ -28,15 +24,7 @@ class OrderCancelRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'order' => ['required', new CancellableOrder],
-            'reason' => 'nullable|string|max:255'
+            'reason' => 'nullable|string|max:255',
         ];
-    }
-
-    public function prepareForValidation()
-    {
-        $this->merge([
-            'order' => $this->order,
-        ]);
     }
 }

@@ -2,8 +2,10 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\OrderStatus;
 use App\Rules\UsableCoupon;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class OrderUpdateRequest extends FormRequest
 {
@@ -12,7 +14,7 @@ class OrderUpdateRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return false;
+        return $this->user()->can('update', $this->order);
     }
 
     /**
@@ -24,7 +26,8 @@ class OrderUpdateRequest extends FormRequest
     {
         return [
             'address_id' => ['exists:addresses,id'],
-            'coupon_id' => ['nullable', 'exists:coupons,id', new UsableCoupon]
+            'coupon_id' => ['nullable', 'exists:coupons,id', new UsableCoupon],
+            'status' => [Rule::enum(OrderStatus::class)->except(OrderStatus::CANCELLED)]
         ];
     }
 }

@@ -28,10 +28,10 @@ use App\Notifications\PaymentFailed;
 use App\Notifications\PaymentSuccess;
 use App\Notifications\RefundRequested;
 use App\Services\CurrencyService;
+use App\Services\RefundService;
 use App\Services\TransactionRefundService;
 use App\Services\VanillaPayService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -185,10 +185,6 @@ class TransactionController extends Controller
         switch ($request->payment_method) {
             case 'vanilla_pay':
                 $notif_url = route('webhooks.vanillapay');
-                Log::debug('########################### TransactionController->store ###############################');
-                Log::debug(["uuid", $uuid]);
-                Log::debug(["notif_url", $notif_url]);
-                Log::debug('---------------------------END TransactionController->store-----------------------------');
 
                 if ($currency !== 'MGA' && $currency !== 'EUR') {
                     $amount = $currencyService->convert(amount: $amount, from: $currency, to: 'EUR');
@@ -545,21 +541,7 @@ class TransactionController extends Controller
 
     public function requestRefund(RefundRequestStoreRequest $request, Transaction $transaction)
     {
-        $refundRequest = RefundRequest::create([
-            'uuid'              => Str::uuid()->toString(),
-            'user_id'           => auth('sanctum')->id(),
-            'transaction_uuid'  => $transaction->uuid,
-            'order_uuid' => $transaction->order_uuid,
-            'amount'            => $request->amount ?? $transaction->amount,
-            'reason'            => $request->reason,
-            'status'            => 'pending',
-        ]);
-
-        $admins = User::where('role', 'admin')->get(); // adjust role check as needed
-        foreach ($admins as $admin) {
-            $admin->notify(new RefundRequested($refundRequest, $transaction, auth('sanctum')->user()));
-        }
-
+        $refundRequest = app(RefundService::class)->requestRefund($transaction, $request->reason);
         return response()->json(['refund_request' => $refundRequest], 201);
     }
 

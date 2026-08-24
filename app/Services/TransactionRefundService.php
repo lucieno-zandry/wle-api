@@ -17,7 +17,7 @@ class TransactionRefundService
             'uuid'                     => Str::uuid()->toString(),
             'user_id'                  => $transaction->user_id,
             'order_uuid'               => $transaction->order_uuid,
-            'method'                   => $transaction->method,
+            'payment_method'                   => $transaction->method ?? "Unknown",
             'amount'                   => $amount ?? $transaction->amount,
             'status'                   => TransactionStatus::PENDING->value,
             'type'                     => 'REFUND',

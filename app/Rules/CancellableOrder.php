@@ -2,7 +2,6 @@
 
 namespace App\Rules;
 
-use App\Enums\OrderStatus;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 
@@ -15,19 +14,9 @@ class CancellableOrder implements ValidationRule
      */
     public function validate(string $attribute, mixed $order, Closure $fail): void
     {
-        // Validate Allowed Window: Cannot cancel if processing or beyond
-        $disallowedStatuses = [
-            OrderStatus::PROCESSING,
-            OrderStatus::SHIPPED,
-            OrderStatus::DELIVERED
-        ];
-
-        if (in_array($order->status, $disallowedStatuses)) {
-            $fail('This order is already being processed and cannot be cancelled.');
-        }
-
-        if ($order->status === OrderStatus::CANCELLED) {
-            $fail('Order is already cancelled.');
+        // Executes Policy checks and retrieves the exact deny message if it fails
+        if (!$order->isCancellable()) {
+            $fail('This order is already being processed or cancelled.');
         }
     }
 }

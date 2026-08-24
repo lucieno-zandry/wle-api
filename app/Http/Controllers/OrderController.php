@@ -10,6 +10,7 @@ use App\Http\Requests\OrderCheckoutRequest;
 use App\Http\Requests\OrderCreateRequest;
 use App\Http\Requests\OrderDeleteRequest;
 use App\Http\Requests\OrderUpdateRequest;
+use App\Http\Resources\OrderResource;
 use App\Models\Address;
 use App\Models\CartItem;
 use App\Models\Order;
@@ -218,6 +219,11 @@ class OrderController extends Controller
             });
         }
 
+        // Apply status filter
+        if ($request->has('status') && !empty($request->status)) {
+            $query->where('status', $request->status);
+        }
+
         if ($request->has('total_min')) {
             $query->where('total', '>=', $request->total_min);
         }
@@ -230,12 +236,7 @@ class OrderController extends Controller
         $perPage = $request->get('per_page', 20);
         $orders = $query->paginate($perPage);
 
-        /** @var \App\Models\Order */
-        foreach ($orders as $order) {
-            $order->convertCurrency();
-        }
-
-        return response()->json($orders);
+        return OrderResource::collection($orders);
     }
 
     public function show(string $order_uuid)
@@ -246,10 +247,8 @@ class OrderController extends Controller
         if ($order?->has_no_successful_payment())
             $order = OrderHelpers::refresh_order($order);
 
-        $order?->convertCurrency();
-
         return [
-            'order' => $order
+            'order' => OrderResource::make($order)
         ];
     }
 

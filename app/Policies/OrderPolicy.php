@@ -2,8 +2,11 @@
 
 namespace App\Policies;
 
+use App\Enums\OrderStatus;
 use App\Models\Order;
 use App\Models\User;
+use Illuminate\Auth\Access\Response;
+use Illuminate\Support\Facades\Log;
 
 class OrderPolicy
 {
@@ -50,9 +53,17 @@ class OrderPolicy
     /**
      * Determine whether the user can cancel the order.
      */
-    public function cancel(User $user, Order $order): bool
+    public function cancel(User $user, Order $order): Response
     {
-        return $user->id === $order->user_id || $user->roleIsAdmin();
+        if ($order->user_id !== $user->id && !$user->roleIsAdmin()) {
+            return Response::deny('You do not own this order.');
+        }
+
+        if (!$order->isCancellable($user)) {
+            return Response::deny('This order is already being processed or cancelled.');
+        }
+
+        return Response::allow();
     }
 
     /**

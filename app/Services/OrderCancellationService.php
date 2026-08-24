@@ -34,15 +34,7 @@ class OrderCancellationService
             $successfulTransaction = $order->transactions()->where('status', 'SUCCESS')->first();
 
             if ($successfulTransaction) {
-                $refundRequest = RefundRequest::create([
-                    'user_id' => $order->user_id,
-                    'transaction_uuid' => $successfulTransaction->uuid,
-                    'order_uuid' => $order->uuid,
-                    'uuid' => Str::uuid()->toString(),
-                    'order_id' => $order->id,
-                    'amount' => $successfulTransaction->amount,
-                    'reason' => $reason,
-                ]);
+                $refundRequest = app(RefundService::class)->requestRefund($successfulTransaction, $reason);
             }
 
             // 4. Dispatch Event to notify systems (Emails, DB Notifications)
