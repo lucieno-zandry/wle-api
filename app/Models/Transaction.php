@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\RefundRequestStatus;
 use App\Services\CurrencyService;
 use App\Traits\ApplyFilters;
 use App\Traits\CustomerFilterable;
@@ -98,5 +99,11 @@ class Transaction extends Model
     {
         $this->setValueToConvertedCurrency('amount', $this->amount);
         return $this;
+    }
+
+    public function has_pending_refund_requests(): bool
+    {
+        $requests = $this->refund_requests()->where('status', RefundRequestStatus::PENDING->value)->get()->count() ?? false;
+        return !!$requests;
     }
 }

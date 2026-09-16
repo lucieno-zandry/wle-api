@@ -75,6 +75,14 @@ class OrderPolicy
     }
 
     /**
+     * Determine whether the user can initiate a refund request.
+     */
+    public function refund(User $user, Order $order): bool
+    {
+        return !$order->has_pending_refund_requests();
+    }
+
+    /**
      * Determine whether the user can permanently delete the model.
      */
     public function forceDelete(User $user, Order $order): bool

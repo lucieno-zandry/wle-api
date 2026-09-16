@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\TransactionTypes;
 use App\Models\User;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -33,7 +34,7 @@ return new class extends Migration {
             $table->float('amount')->default(0);
 
             // Transaction type and self-referential linkage
-            $table->enum('type', ['PAYMENT', 'REFUND', 'MANUAL'])->default('PAYMENT');
+            $table->string('type')->default(TransactionTypes::toArray()[0]);
             $table->string('parent_transaction_uuid')->nullable();
             $table->foreign('parent_transaction_uuid')
                 ->references('uuid')

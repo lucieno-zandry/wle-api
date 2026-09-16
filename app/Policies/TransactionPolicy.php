@@ -42,7 +42,8 @@ class TransactionPolicy
     {
         return $user->id === $transaction->user_id
             && $transaction->status === TransactionStatus::SUCCESS->value
-            && $transaction->type === 'PAYMENT'; // only original payments
+            && $transaction->type === 'PAYMENT'
+            && !$transaction->has_pending_refund_requests();
     }
 
     // app/Policies/TransactionPolicy.php

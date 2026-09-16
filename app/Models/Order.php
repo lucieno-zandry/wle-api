@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\OrderStatus;
+use App\Enums\RefundRequestStatus;
 use App\Services\CurrencyService;
 use App\Traits\ApplyFilters;
 use App\Traits\CustomerFilterable;
@@ -39,6 +40,12 @@ class Order extends Model
     {
         $successful_transaction = Transaction::where('order_uuid', $this->uuid)->first();
         return !$successful_transaction;
+    }
+
+    public function has_pending_refund_requests()
+    {
+        $hasRefundRequests = !$this->refund_requests()->where('status', RefundRequestStatus::PENDING->value)->get()->count() ?? false;
+        return $hasRefundRequests;
     }
 
     public function cart_items()

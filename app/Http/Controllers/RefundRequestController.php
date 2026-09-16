@@ -36,10 +36,16 @@ class RefundRequestController extends Controller
         // Call the existing refund method on the transaction
         $transaction = $refundRequest->transaction;
 
+        if ($request->transaction_reference)
+            $transaction->payment_reference = $request->transaction_reference;
+
+        if ($request->payment_method)
+            $transaction->payment_method = $request->payment_method;
+
         $refundTransaction = app(TransactionRefundService::class)->refund(
             transaction: $transaction,
             amount: $refundRequest->amount,
-            reason: $refundRequest->reason,
+            informations: ['reason' => $refundRequest->reason, 'reference' => $request->reference || ""],
             performedBy: auth('sanctum')->id()
         );
 

@@ -33,7 +33,7 @@ class OrderCancellationService
             $refundRequest = null;
             $successfulTransaction = $order->transactions()->where('status', 'SUCCESS')->first();
 
-            if ($successfulTransaction) {
+            if ($successfulTransaction && !$order->has_pending_refund_requests()) {
                 $refundRequest = app(RefundService::class)->requestRefund($successfulTransaction, $reason);
             }
 
